@@ -1,0 +1,21 @@
+# Virtual environment
+env*/
+.venv
+venv/
+
+# IDE
+.idea/
+*.swp
+
+# Python caches
+*/__pycache__/
+
+# Bot config
+bot.ini
+
+# Others
+tmp.py
+tmp_*/
+
+# Stakeholder Requirements Specifications
+_StRS_/
