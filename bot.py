@@ -18,18 +18,23 @@ class Config:
     level=<log level, optional, default - INFO>
     ----------------------------------------------------------
     """
+
     def __init__(self):
         parser = configparser.ConfigParser()
-        parser.read('bot.ini')
-        self.token = parser.get('DEFAULT', 'token')
-        self.log_format = \
-            parser.get('LOGGING', 'format', fallback='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        self.log_level = \
-            parser.get('LOGGING', 'level', fallback='INFO')
+        parser.read("bot.ini")
+        self.token = parser.get("DEFAULT", "token")
+        self.log_format = parser.get(
+            "LOGGING",
+            "format",
+            fallback="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+        self.log_level = parser.get("LOGGING", "level", fallback="INFO")
 
 
 config = Config()
-logging.basicConfig(format=config.log_format, level=logging.getLevelName(config.log_level))
+logging.basicConfig(
+    format=config.log_format, level=logging.getLevelName(config.log_level)
+)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
@@ -46,5 +51,5 @@ def main() -> None:
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
