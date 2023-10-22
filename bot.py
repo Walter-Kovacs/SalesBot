@@ -6,6 +6,10 @@ from telegram.ext import (
     Application,
 )
 
+from ui.handler import (
+    conversation_handler,
+)
+
 
 class Config:
     """
@@ -41,14 +45,8 @@ logger = logging.getLogger(__name__)
 
 def main() -> None:
     app: Application = Application.builder().token(config.token).build()
-
-    # ...
-
-    app.run_polling(
-        allowed_updates=[
-            Update.CALLBACK_QUERY,
-        ]
-    )
+    app.add_handler(conversation_handler)
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":
