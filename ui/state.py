@@ -82,8 +82,14 @@ class KitState(UserInterfaceState):
     def _init_keyboard(self):
         self._keyboard = []
         for kit_variant in self._kit.variants.values():
-            title = kit_variant.variant_title
-            self._keyboard.append([InlineKeyboardButton(title, callback_data=title)])
+            self._keyboard.append(
+                [
+                    InlineKeyboardButton(
+                        kit_variant.variant_title,
+                        callback_data=f"{kit_variant.kit.name}~{kit_variant.variant_title}",
+                    )
+                ]
+            )
 
         self._keyboard.append(
             [
@@ -103,16 +109,22 @@ class KitVariantState(UserInterfaceState):
 
     def _init_keyboard(self):
         self._keyboard = [
-            InlineKeyboardButton(
-                BUTTON_TITLE_SELECT_KIT_VARIANT,
-                callback_data=BUTTON_TITLE_SELECT_KIT_VARIANT,
-            ),
-            InlineKeyboardButton(
-                BUTTON_TITLE_GO_BACK,
-                callback_data=f"Go back {self._kit_variant.kit.name}",
-            ),
-            InlineKeyboardButton(
-                BUTTON_TITLE_GO_BACK_TO_MAIN_MENU,
-                callback_data=BUTTON_TITLE_GO_BACK_TO_MAIN_MENU,
-            ),
+            [
+                InlineKeyboardButton(
+                    BUTTON_TITLE_SELECT_KIT_VARIANT,
+                    callback_data=f"{self._kit_variant.kit.name}~{self._kit_variant.variant_title}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    BUTTON_TITLE_GO_BACK,
+                    callback_data=self._kit_variant.kit.name,
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    BUTTON_TITLE_GO_BACK_TO_MAIN_MENU,
+                    callback_data=BUTTON_TITLE_GO_BACK_TO_MAIN_MENU,
+                )
+            ],
         ]

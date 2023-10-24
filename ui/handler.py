@@ -74,7 +74,7 @@ async def open_kit_variant_menu(update: Update, context: ContextTypes.DEFAULT_TY
         kit_variant_key = str(query.data)  # kit.name~kit_variant.variant_title
         await query.answer()
         await query.edit_message_text(
-            str(query.data),
+            kit_variant_key,
             reply_markup=kit_variant_states[kit_variant_key].get_keyboard_markup(),
         )
     return KIT_VARIANT_STATE
@@ -83,10 +83,33 @@ async def open_kit_variant_menu(update: Update, context: ContextTypes.DEFAULT_TY
 async def go_back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query is not None:
+        await query.answer()
         await query.edit_message_text(
             "Main menu", reply_markup=main_state.get_keyboard_markup()
         )
     return MAIN_STATE
+
+
+async def select_kit_variant(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if query is not None:
+        kit_variant_key = str(query.data)  # kit.name~kit_variant.variant_title
+        await query.answer()
+        await query.edit_message_text(
+            kit_variant_key, reply_markup=main_state.get_keyboard_markup()
+        )
+    return MAIN_STATE
+
+
+async def go_back_to_kit_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if query is not None:
+        kit_name = str(query.data)
+        await query.answer()
+        await query.edit_message_text(
+            kit_name, reply_markup=kit_states[kit_name].get_keyboard_markup()
+        )
+    return KIT_STATE
 
 
 conversation_handler = ConversationHandler(
@@ -116,7 +139,22 @@ conversation_handler = ConversationHandler(
                 go_back_to_main_menu, pattern=BUTTON_TITLE_GO_BACK_TO_MAIN_MENU
             ),
         ],
-        KIT_VARIANT_STATE: [],
+        KIT_VARIANT_STATE: [
+            CallbackQueryHandler(
+                select_kit_variant, pattern=f"{kit.name}~{kit_variant.variant_title}"
+            )
+            for kit in KITS.values()
+            for kit_variant in kit.variants.values()
+        ]
+        + [
+            CallbackQueryHandler(go_back_to_kit_menu, pattern=kit.name)
+            for kit in KITS.values()
+        ]
+        + [
+            CallbackQueryHandler(
+                go_back_to_main_menu, pattern=BUTTON_TITLE_GO_BACK_TO_MAIN_MENU
+            ),
+        ],
     },
     fallbacks=[CommandHandler("start", start)],
 )

@@ -25,14 +25,29 @@ class KitVariant:
 def load_kits():
     KITS.clear()
     # temporary initialization
+    # kit #1
     kit = Kit(name="Kit #1", variants=dict())
-    kit_variant = KitVariant(
+    kit.variants["Variant #1 of the Kit #1"] = KitVariant(
         kit=kit,
         variant_title="Variant #1 of the Kit #1",
         description="description",
         price=100,
     )
-    kit.variants[kit_variant.variant_title] = kit_variant
+    kit.variants["Variant #2 of the Kit #1"] = KitVariant(
+        kit=kit,
+        variant_title="Variant #2 of the Kit #1",
+        description="description",
+        price=100,
+    )
+    KITS[kit.name] = kit
+    # kit #2
+    kit = Kit(name="Foo", variants=dict())
+    kit.variants["Variant #1 of the Foo"] = KitVariant(
+        kit=kit,
+        variant_title="Variant #1 of the Foo",
+        description="description",
+        price=100,
+    )
     KITS[kit.name] = kit
 
 
