@@ -46,6 +46,17 @@ logger = logging.getLogger(__name__)
 def main() -> None:
     app: Application = Application.builder().token(config.token).build()
     app.add_handler(conversation_handler)
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(
+            "\nConversation states, callbacks, patterns:\n\t"
+            + "\n\t".join(
+                [
+                    f"{key}, {el.callback.__name__}, {el.pattern.pattern}"
+                    for key in conversation_handler.states.keys()
+                    for el in conversation_handler.states[key]
+                ]
+            )
+        )
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
