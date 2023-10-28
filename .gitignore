@@ -8,6 +8,7 @@ venv/
 *.swp
 
 # Python caches
+__pycache__/
 */__pycache__/
 
 # Bot config

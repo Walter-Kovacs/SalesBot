@@ -1,4 +1,8 @@
-from typing import Dict
+import logging
+from typing import (
+    Dict,
+    List,
+)
 
 from telegram import (
     Update,
@@ -14,15 +18,17 @@ from kit import (
     KITS,
 )
 from ui.state import (
-    BUTTON_TITLE_CONFIRM_SELECTIONS,
-    BUTTON_TITLE_GO_BACK_TO_MAIN_MENU,
-    BUTTON_TITLE_SHOW_CURRENT_SELECTIONS,
     KitState,
     KitVariantState,
     MainState,
 )
 
-MAIN_STATE, KIT_STATE, KIT_VARIANT_STATE = range(3)
+logger = logging.getLogger(__name__)
+
+MAIN_STATE = "MAIN_STATE"
+KIT_STATE = "KIT_STATE"
+KIT_VARIANT_STATE = "KIT_VARIANT_STATE"
+
 main_state: MainState = MainState()
 kit_states: Dict[str, KitState] = {kit.name: KitState(kit) for kit in KITS.values()}
 kit_variant_states: Dict[str, KitVariantState] = {
@@ -112,49 +118,103 @@ async def go_back_to_kit_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
     return KIT_STATE
 
 
-conversation_handler = ConversationHandler(
-    entry_points=[CommandHandler("start", start)],
-    states={
-        MAIN_STATE: [
-            CallbackQueryHandler(open_kit_menu, pattern=kit.name)
-            for kit in KITS.values()
+class ConversationHandlerManager:
+    @staticmethod
+    def create_handler() -> ConversationHandler:
+        handler = ConversationHandler(
+            entry_points=[CommandHandler("start", start)],
+            states={
+                MAIN_STATE: ConversationHandlerManager._create_main_state_handler(),
+                KIT_STATE: ConversationHandlerManager._create_kit_state_handlers(),
+                KIT_VARIANT_STATE: ConversationHandlerManager._create_kit_variant_state_handlers(),
+            },
+            fallbacks=[CommandHandler("start", start)],
+        )
+        ConversationHandlerManager._log_handler(handler)
+        return handler
+
+    @staticmethod
+    def _create_main_state_handler() -> List[CallbackQueryHandler]:
+        handlers = [
+            CallbackQueryHandler(open_kit_menu, pattern=callback_data)
+            for callback_data in main_state.list_of_callback_data_go_to_kit
         ]
-        + [
+        handlers.append(
             CallbackQueryHandler(
-                show_current_selection, pattern=BUTTON_TITLE_SHOW_CURRENT_SELECTIONS
-            ),
-            CallbackQueryHandler(
-                confirm_selections, pattern=BUTTON_TITLE_CONFIRM_SELECTIONS
-            ),
-        ],
-        KIT_STATE: [
-            CallbackQueryHandler(
-                open_kit_variant_menu, pattern=f"{kit.name}~{kit_variant.variant_title}"
+                show_current_selection,
+                pattern=MainState.callback_data_show_current_selections,
             )
-            for kit in KITS.values()
-            for kit_variant in kit.variants.values()
-        ]
-        + [
+        )
+        handlers.append(
             CallbackQueryHandler(
-                go_back_to_main_menu, pattern=BUTTON_TITLE_GO_BACK_TO_MAIN_MENU
-            ),
-        ],
-        KIT_VARIANT_STATE: [
-            CallbackQueryHandler(
-                select_kit_variant, pattern=f"{kit.name}~{kit_variant.variant_title}"
+                confirm_selections, pattern=MainState.callback_data_confirm_selections
             )
-            for kit in KITS.values()
-            for kit_variant in kit.variants.values()
+        )
+        return handlers
+
+    @staticmethod
+    def _create_kit_state_handlers() -> List[CallbackQueryHandler]:
+        handlers = [
+            CallbackQueryHandler(open_kit_variant_menu, pattern=callback_data)
+            for state in kit_states.values()
+            for callback_data in state.list_of_callback_data_go_to_kit_variant
         ]
-        + [
-            CallbackQueryHandler(go_back_to_kit_menu, pattern=kit.name)
-            for kit in KITS.values()
-        ]
-        + [
+        handlers.append(
             CallbackQueryHandler(
-                go_back_to_main_menu, pattern=BUTTON_TITLE_GO_BACK_TO_MAIN_MENU
-            ),
-        ],
-    },
-    fallbacks=[CommandHandler("start", start)],
-)
+                go_back_to_main_menu,
+                pattern=KitState.callback_data_go_back_to_main_menu,
+            )
+        )
+        return handlers
+
+    @staticmethod
+    def _create_kit_variant_state_handlers() -> List[CallbackQueryHandler]:
+        handlers = [
+            CallbackQueryHandler(
+                select_kit_variant, pattern=state.callback_data_select_kit
+            )
+            for state in kit_variant_states.values()
+        ]
+        handlers += [
+            CallbackQueryHandler(go_back_to_kit_menu, pattern=pattern)
+            for pattern in set(
+                [
+                    state.callback_data_go_back_to_kit
+                    for state in kit_variant_states.values()
+                ]
+            )
+        ]
+        handlers.append(
+            CallbackQueryHandler(
+                go_back_to_main_menu,
+                pattern=KitVariantState.callback_data_go_back_to_main_menu,
+            )
+        )
+        return handlers
+
+    @staticmethod
+    def _log_handler(handler: ConversationHandler):
+        if logger.isEnabledFor(logging.WARNING):  # TODO: change level to DEBUG
+            callback_space = max(
+                [
+                    len(h.callback.__name__)
+                    for state in handler.states
+                    for h in handler.states[state]
+                ]
+            )
+            callback_space += 4
+
+            debug_string = "\nConversation states handlers (callback, pattern):"
+            for state in handler.states:
+                debug_string += f"\n{state}:\n    " + "\n    ".join(
+                    [
+                        f"{h.callback.__name__.ljust(callback_space)}{h.pattern}"
+                        if isinstance(h, CallbackQueryHandler)
+                        else repr(h)
+                        for h in handler.states[state]
+                    ]
+                )
+            logger.warning(debug_string)  # TODO: change call to logger.debug()
+
+
+conversation_handler = ConversationHandlerManager.create_handler()
