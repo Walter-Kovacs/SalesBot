@@ -1,5 +1,8 @@
+import logging
 from dataclasses import dataclass
 from typing import Dict
+
+logger = logging.getLogger(f"bot.{__name__}")
 
 # KITS is a global dictionary of Kit objects, which filled by 'load_kits' function.
 # value - object of the Kit class, key - 'name' field of the object
@@ -26,6 +29,7 @@ def load_kits():
     KITS.clear()
     # temporary initialization
     # kit #1
+    logger.debug("Temporary KITS initialization")
     kit = Kit(name="Kit #1", variants=dict())
     kit.variants["Variant #1 of the Kit #1"] = KitVariant(
         kit=kit,
@@ -49,6 +53,3 @@ def load_kits():
         price=100,
     )
     KITS[kit.name] = kit
-
-
-load_kits()

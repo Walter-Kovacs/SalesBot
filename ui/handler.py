@@ -23,19 +23,15 @@ from ui.state import (
     MainState,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"bot.{__name__}")
 
 MAIN_STATE = "MAIN_STATE"
 KIT_STATE = "KIT_STATE"
 KIT_VARIANT_STATE = "KIT_VARIANT_STATE"
 
-main_state: MainState = MainState()
-kit_states: Dict[str, KitState] = {kit.name: KitState(kit) for kit in KITS.values()}
-kit_variant_states: Dict[str, KitVariantState] = {
-    f"{kit.name}~{kit_variant.variant_title}": KitVariantState(kit_variant)
-    for kit in KITS.values()
-    for kit_variant in kit.variants.values()
-}
+main_state: MainState
+kit_states: Dict[str, KitState]
+kit_variant_states: Dict[str, KitVariantState]
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -121,6 +117,8 @@ async def go_back_to_kit_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
 class ConversationHandlerManager:
     @staticmethod
     def create_handler() -> ConversationHandler:
+        ConversationHandlerManager._create_states()
+
         handler = ConversationHandler(
             entry_points=[CommandHandler("start", start)],
             states={
@@ -131,7 +129,19 @@ class ConversationHandlerManager:
             fallbacks=[CommandHandler("start", start)],
         )
         ConversationHandlerManager._log_handler(handler)
+
         return handler
+
+    @staticmethod
+    def _create_states() -> None:
+        global main_state, kit_states, kit_variant_states
+        main_state = MainState()
+        kit_states = {kit.name: KitState(kit) for kit in KITS.values()}
+        kit_variant_states = {
+            f"{kit.name}~{kit_variant.variant_title}": KitVariantState(kit_variant)
+            for kit in KITS.values()
+            for kit_variant in kit.variants.values()
+        }
 
     @staticmethod
     def _create_main_state_handler() -> List[CallbackQueryHandler]:
@@ -194,27 +204,23 @@ class ConversationHandlerManager:
 
     @staticmethod
     def _log_handler(handler: ConversationHandler):
-        if logger.isEnabledFor(logging.WARNING):  # TODO: change level to DEBUG
-            callback_space = max(
+        callback_space = max(
+            [
+                len(h.callback.__name__)
+                for state in handler.states
+                for h in handler.states[state]
+            ]
+        )
+        callback_space += 4
+
+        debug_string = "Conversation states handlers (callback, pattern):"
+        for state in handler.states:
+            debug_string += f"\n{state}:\n    " + "\n    ".join(
                 [
-                    len(h.callback.__name__)
-                    for state in handler.states
+                    f"{h.callback.__name__.ljust(callback_space)}{h.pattern}"
+                    if isinstance(h, CallbackQueryHandler)
+                    else repr(h)
                     for h in handler.states[state]
                 ]
             )
-            callback_space += 4
-
-            debug_string = "\nConversation states handlers (callback, pattern):"
-            for state in handler.states:
-                debug_string += f"\n{state}:\n    " + "\n    ".join(
-                    [
-                        f"{h.callback.__name__.ljust(callback_space)}{h.pattern}"
-                        if isinstance(h, CallbackQueryHandler)
-                        else repr(h)
-                        for h in handler.states[state]
-                    ]
-                )
-            logger.warning(debug_string)  # TODO: change call to logger.debug()
-
-
-conversation_handler = ConversationHandlerManager.create_handler()
+        logger.info(debug_string)
