@@ -14,24 +14,24 @@ from telegram.ext import (
     ConversationHandler,
 )
 
-from kit import (
-    KITS,
+from products import (
+    PRODUCTS,
 )
 from ui.state import (
-    KitState,
-    KitVariantState,
+    ProductState,
+    ProductVariantState,
     MainState,
 )
 
 logger = logging.getLogger(f"bot.{__name__}")
 
 MAIN_STATE = "MAIN_STATE"
-KIT_STATE = "KIT_STATE"
-KIT_VARIANT_STATE = "KIT_VARIANT_STATE"
+PRODUCT_STATE = "PRODUCT_STATE"
+PRODUCT_VARIANT_STATE = "PRODUCT_VARIANT_STATE"
 
 main_state: MainState
-kit_states: Dict[str, KitState]
-kit_variant_states: Dict[str, KitVariantState]
+product_states: Dict[str, ProductState]
+product_variant_states: Dict[str, ProductVariantState]
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -41,15 +41,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return MAIN_STATE
 
 
-async def open_kit_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def open_product_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query is not None:
-        kit_name: str = str(query.data)
+        product_name: str = str(query.data)
         await query.answer()
         await query.edit_message_text(
-            str(query.data), reply_markup=kit_states[kit_name].get_keyboard_markup()
+            str(query.data), reply_markup=product_states[product_name].get_keyboard_markup()
         )
-    return KIT_STATE
+    return PRODUCT_STATE
 
 
 async def show_current_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -70,16 +70,16 @@ async def confirm_selections(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return MAIN_STATE
 
 
-async def open_kit_variant_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def open_product_variant_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query is not None:
-        kit_variant_key = str(query.data)  # kit.name~kit_variant.variant_title
+        product_variant_key = str(query.data)  # product.name~product_variant.name
         await query.answer()
         await query.edit_message_text(
-            kit_variant_key,
-            reply_markup=kit_variant_states[kit_variant_key].get_keyboard_markup(),
+            product_variant_key,
+            reply_markup=product_variant_states[product_variant_key].get_keyboard_markup(),
         )
-    return KIT_VARIANT_STATE
+    return PRODUCT_VARIANT_STATE
 
 
 async def go_back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -92,26 +92,26 @@ async def go_back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYP
     return MAIN_STATE
 
 
-async def select_kit_variant(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def select_product_variant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query is not None:
-        kit_variant_key = str(query.data)  # kit.name~kit_variant.variant_title
+        product_variant_key = str(query.data)  # product.name~product_variant.name
         await query.answer()
         await query.edit_message_text(
-            kit_variant_key, reply_markup=main_state.get_keyboard_markup()
+            product_variant_key, reply_markup=main_state.get_keyboard_markup()
         )
     return MAIN_STATE
 
 
-async def go_back_to_kit_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def go_back_to_product_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query is not None:
-        kit_name = str(query.data)
+        product_name = str(query.data)
         await query.answer()
         await query.edit_message_text(
-            kit_name, reply_markup=kit_states[kit_name].get_keyboard_markup()
+            product_name, reply_markup=product_states[product_name].get_keyboard_markup()
         )
-    return KIT_STATE
+    return PRODUCT_STATE
 
 
 class ConversationHandlerManager:
@@ -123,8 +123,8 @@ class ConversationHandlerManager:
             entry_points=[CommandHandler("start", start)],
             states={
                 MAIN_STATE: ConversationHandlerManager._create_main_state_handler(),
-                KIT_STATE: ConversationHandlerManager._create_kit_state_handlers(),
-                KIT_VARIANT_STATE: ConversationHandlerManager._create_kit_variant_state_handlers(),
+                PRODUCT_STATE: ConversationHandlerManager._create_product_state_handlers(),
+                PRODUCT_VARIANT_STATE: ConversationHandlerManager._create_product_variant_state_handlers(),
             },
             fallbacks=[CommandHandler("start", start)],
         )
@@ -134,20 +134,20 @@ class ConversationHandlerManager:
 
     @staticmethod
     def _create_states() -> None:
-        global main_state, kit_states, kit_variant_states
+        global main_state, product_states, product_variant_states
         main_state = MainState()
-        kit_states = {kit.name: KitState(kit) for kit in KITS.values()}
-        kit_variant_states = {
-            f"{kit.name}~{kit_variant.variant_title}": KitVariantState(kit_variant)
-            for kit in KITS.values()
-            for kit_variant in kit.variants.values()
+        product_states = {product.name: ProductState(product) for product in PRODUCTS.values()}
+        product_variant_states = {
+            f"{product.name}~{product_variant.name}": ProductVariantState(product_variant)
+            for product in PRODUCTS.values()
+            for product_variant in product.variants.values()
         }
 
     @staticmethod
     def _create_main_state_handler() -> List[CallbackQueryHandler]:
         handlers = [
-            CallbackQueryHandler(open_kit_menu, pattern=callback_data)
-            for callback_data in main_state.list_of_callback_data_go_to_kit
+            CallbackQueryHandler(open_product_menu, pattern=callback_data)
+            for callback_data in main_state.list_of_callback_data_go_to_product
         ]
         handlers.append(
             CallbackQueryHandler(
@@ -163,41 +163,41 @@ class ConversationHandlerManager:
         return handlers
 
     @staticmethod
-    def _create_kit_state_handlers() -> List[CallbackQueryHandler]:
+    def _create_product_state_handlers() -> List[CallbackQueryHandler]:
         handlers = [
-            CallbackQueryHandler(open_kit_variant_menu, pattern=callback_data)
-            for state in kit_states.values()
-            for callback_data in state.list_of_callback_data_go_to_kit_variant
+            CallbackQueryHandler(open_product_variant_menu, pattern=callback_data)
+            for state in product_states.values()
+            for callback_data in state.list_of_callback_data_go_to_product_variant
         ]
         handlers.append(
             CallbackQueryHandler(
                 go_back_to_main_menu,
-                pattern=KitState.callback_data_go_back_to_main_menu,
+                pattern=ProductState.callback_data_go_back_to_main_menu,
             )
         )
         return handlers
 
     @staticmethod
-    def _create_kit_variant_state_handlers() -> List[CallbackQueryHandler]:
+    def _create_product_variant_state_handlers() -> List[CallbackQueryHandler]:
         handlers = [
             CallbackQueryHandler(
-                select_kit_variant, pattern=state.callback_data_select_kit
+                select_product_variant, pattern=state.callback_data_select_this_variant
             )
-            for state in kit_variant_states.values()
+            for state in product_variant_states.values()
         ]
         handlers += [
-            CallbackQueryHandler(go_back_to_kit_menu, pattern=pattern)
+            CallbackQueryHandler(go_back_to_product_menu, pattern=pattern)
             for pattern in set(
                 [
-                    state.callback_data_go_back_to_kit
-                    for state in kit_variant_states.values()
+                    state.callback_data_go_back_to_product_menu
+                    for state in product_variant_states.values()
                 ]
             )
         ]
         handlers.append(
             CallbackQueryHandler(
                 go_back_to_main_menu,
-                pattern=KitVariantState.callback_data_go_back_to_main_menu,
+                pattern=ProductVariantState.callback_data_go_back_to_main_menu,
             )
         )
         return handlers

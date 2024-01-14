@@ -12,10 +12,10 @@ from telegram import (
     InlineKeyboardMarkup,
 )
 
-from kit import (
-    KITS,
-    Kit,
-    KitVariant,
+from products import (
+    PRODUCTS,
+    Product,
+    ProductVariant,
 )
 
 BUTTON_TITLE_SHOW_CURRENT_SELECTIONS = "Show current selections"
@@ -50,19 +50,20 @@ class UserInterfaceState(ABC):
 
 
 class MainState(UserInterfaceState):
+    list_of_callback_data_go_to_product: List[str]
     callback_data_show_current_selections = BUTTON_TITLE_SHOW_CURRENT_SELECTIONS
     callback_data_confirm_selections = BUTTON_TITLE_CONFIRM_SELECTIONS
 
     def __init__(self) -> None:
-        self.list_of_callback_data_go_to_kit: List[str] = [
-            kit.name for kit in KITS.values()
+        self.list_of_callback_data_go_to_product: List[str] = [
+            product_name for product_name in PRODUCTS.names()
         ]
 
     def _init_keyboard(self) -> None:
         self._keyboard = []
-        for kit_name in self.list_of_callback_data_go_to_kit:
+        for product_name in self.list_of_callback_data_go_to_product:
             self._keyboard.append(
-                [InlineKeyboardButton(kit_name, callback_data=kit_name)]
+                [InlineKeyboardButton(product_name, callback_data=product_name)]
             )
         self._keyboard.append(
             [
@@ -82,25 +83,24 @@ class MainState(UserInterfaceState):
         )
 
 
-class KitState(UserInterfaceState):
-    _kit: Kit
+class ProductState(UserInterfaceState):
+    _product: Product
     callback_data_go_back_to_main_menu = BUTTON_TITLE_GO_BACK_TO_MAIN_MENU
 
-    def __init__(self, kit: Kit) -> None:
-        self._kit = kit
-        self.list_of_callback_data_go_to_kit_variant = [
-            f"{self._kit.name}~{kit_variant.variant_title}"
-            for kit_variant in self._kit.variants.values()
+    def __init__(self, product: Product) -> None:
+        self._product = product
+        self.list_of_callback_data_go_to_product_variant = [
+            f"{self._product.name}~{product_variant_name}" for product_variant_name in self._product.variants.names()
         ]
 
     def _init_keyboard(self) -> None:
         self._keyboard = []
-        for kit_and_variant in self.list_of_callback_data_go_to_kit_variant:
+        for product_and_variant in self.list_of_callback_data_go_to_product_variant:
             self._keyboard.append(
                 [
                     InlineKeyboardButton(
-                        kit_and_variant.partition("~")[-1],  # kit variant title
-                        callback_data=kit_and_variant,
+                        product_and_variant.partition("~")[-1],  # product variant name
+                        callback_data=product_and_variant,
                     )
                 ]
             )
@@ -109,41 +109,41 @@ class KitState(UserInterfaceState):
             [
                 InlineKeyboardButton(
                     BUTTON_TITLE_GO_BACK_TO_MAIN_MENU,
-                    callback_data=KitState.callback_data_go_back_to_main_menu,
+                    callback_data=ProductState.callback_data_go_back_to_main_menu,
                 )
             ]
         )
 
 
-class KitVariantState(UserInterfaceState):
-    _kit_variant: KitVariant
+class ProductVariantState(UserInterfaceState):
+    _product_variant: ProductVariant
     callback_data_go_back_to_main_menu = BUTTON_TITLE_GO_BACK_TO_MAIN_MENU
 
-    def __init__(self, kit_variant: KitVariant) -> None:
-        self._kit_variant = kit_variant
-        self.callback_data_select_kit = (
-            f"{self._kit_variant.kit.name}~{self._kit_variant.variant_title}"
+    def __init__(self, product_variant: ProductVariant) -> None:
+        self._product_variant = product_variant
+        self.callback_data_select_this_variant = (
+            f"{self._product_variant.product.name}~{self._product_variant.name}"
         )
-        self.callback_data_go_back_to_kit = self._kit_variant.kit.name
+        self.callback_data_go_back_to_product_menu = self._product_variant.product.name
 
     def _init_keyboard(self) -> None:
         self._keyboard = [
             [
                 InlineKeyboardButton(
                     BUTTON_TITLE_SELECT_KIT_VARIANT,
-                    callback_data=self.callback_data_select_kit,
+                    callback_data=self.callback_data_select_this_variant,
                 )
             ],
             [
                 InlineKeyboardButton(
                     BUTTON_TITLE_GO_BACK,
-                    callback_data=self.callback_data_go_back_to_kit,
+                    callback_data=self.callback_data_go_back_to_product_menu,
                 )
             ],
             [
                 InlineKeyboardButton(
                     BUTTON_TITLE_GO_BACK_TO_MAIN_MENU,
-                    callback_data=KitVariantState.callback_data_go_back_to_main_menu,
+                    callback_data=ProductVariantState.callback_data_go_back_to_main_menu,
                 )
             ],
         ]

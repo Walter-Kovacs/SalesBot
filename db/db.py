@@ -3,9 +3,11 @@ from typing import (
     List,
 )
 
-from kit import KitVariant
+from products import (
+    ProductVariant,
+)
 
-_db: Dict[int, List[KitVariant]] = dict()  # key: telegram user id
+_db: Dict[int, List[ProductVariant]] = dict()  # key: telegram user id
 
 
 # Create
@@ -14,17 +16,17 @@ def create_user_list_of_variants(user_id: int):
 
 
 # Read
-def get_user_list_of_variants(user_id: int) -> List[KitVariant]:
+def get_user_list_of_variants(user_id: int) -> List[ProductVariant]:
     return _db[user_id]
 
 
 # Update
-def add_kit_variant(user_id: int, kit_variant: KitVariant):
-    _db[user_id].append(kit_variant)
+def add_kit_variant(user_id: int, product_variant: ProductVariant):
+    _db[user_id].append(product_variant)
 
 
-def remove_kit_variant(user_id: int, kit_variant: KitVariant):
-    _db[user_id].remove(kit_variant)
+def remove_kit_variant(user_id: int, product_variant: ProductVariant):
+    _db[user_id].remove(product_variant)
 
 
 # Delete

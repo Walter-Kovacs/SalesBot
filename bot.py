@@ -6,7 +6,10 @@ from telegram.ext import (
 )
 
 from config import Config
-from kit import load_kits
+from products import (
+    PRODUCTS,
+    load_products,
+)
 from ui.handler import ConversationHandlerManager
 
 logger = logging.getLogger("bot")
@@ -21,9 +24,9 @@ def main() -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logger.info("Logging is configured")
 
-    logger.info("Loading kits ...")
-    load_kits()
-    logger.info("Kits are loaded")
+    logger.info("Loading products ...")
+    load_products(PRODUCTS)
+    logger.info("Products are loaded")
 
     app: Application = Application.builder().token(config.token).build()
     app.add_handler(ConversationHandlerManager.create_handler())
