@@ -21,11 +21,11 @@ def get_user_list_of_variants(user_id: int) -> List[ProductVariant]:
 
 
 # Update
-def add_kit_variant(user_id: int, product_variant: ProductVariant):
+def add_product_variant(user_id: int, product_variant: ProductVariant):
     _db[user_id].append(product_variant)
 
 
-def remove_kit_variant(user_id: int, product_variant: ProductVariant):
+def remove_product_variant(user_id: int, product_variant: ProductVariant):
     _db[user_id].remove(product_variant)
 
 

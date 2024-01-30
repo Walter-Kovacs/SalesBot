@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -46,7 +47,7 @@ class NamedElementsCollection(dict):
         else:
             raise CollectionException(f"Element with name '{elem.name}' already exists")
 
-    def get(self, elem_name: str) -> Named:
+    def get_element(self, elem_name: str) -> Any:
         if self.__contains__(elem_name):
             return self[elem_name]
         else:

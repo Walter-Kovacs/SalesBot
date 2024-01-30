@@ -14,8 +14,11 @@ from telegram.ext import (
     ConversationHandler,
 )
 
+import db
 from products import (
     PRODUCTS,
+    Product,
+    ProductVariant,
 )
 from ui.state import (
     ProductState,
@@ -37,6 +40,7 @@ product_variant_states: Dict[str, ProductVariantState]
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message
     if msg is not None:
+        db.create_user_list_of_variants(update.effective_user.id)
         await msg.reply_text("Main", reply_markup=main_state.get_keyboard_markup())
     return MAIN_STATE
 
@@ -55,8 +59,15 @@ async def open_product_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_current_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query is not None:
+        msg = "Selected products:\n"
+        total_price = 0
+        user_product_variants = db.get_user_list_of_variants(update.effective_user.id)
+        for product_variant in user_product_variants:
+            msg += f"{product_variant.name}: {product_variant.price} rubles\n"
+            total_price += product_variant.price
+        msg += f"\nTotal price: {total_price} rubles"
         await query.edit_message_text(
-            str(query.data), reply_markup=main_state.get_keyboard_markup()
+            msg, reply_markup=main_state.get_keyboard_markup()
         )
     return MAIN_STATE
 
@@ -65,8 +76,9 @@ async def confirm_selections(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     if query is not None:
         await query.edit_message_text(
-            str(query.data), reply_markup=main_state.get_keyboard_markup()
+            str(query.data)
         )
+    db.delete_user_list_of_variants(update.effective_user.id)
     return MAIN_STATE
 
 
@@ -96,6 +108,10 @@ async def select_product_variant(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     if query is not None:
         product_variant_key = str(query.data)  # product.name~product_variant.name
+        product_name, product_variant_name = product_variant_key.split('~')
+        product: Product = PRODUCTS.get_element(product_name)
+        product_variant: ProductVariant = product.variants.get_element(product_variant_name)
+        db.add_product_variant(update.effective_user.id, product_variant)
         await query.answer()
         await query.edit_message_text(
             product_variant_key, reply_markup=main_state.get_keyboard_markup()
@@ -122,7 +138,7 @@ class ConversationHandlerManager:
         handler = ConversationHandler(
             entry_points=[CommandHandler("start", start)],
             states={
-                MAIN_STATE: ConversationHandlerManager._create_main_state_handler(),
+                MAIN_STATE: ConversationHandlerManager._create_main_state_handlers(),
                 PRODUCT_STATE: ConversationHandlerManager._create_product_state_handlers(),
                 PRODUCT_VARIANT_STATE: ConversationHandlerManager._create_product_variant_state_handlers(),
             },
@@ -144,7 +160,7 @@ class ConversationHandlerManager:
         }
 
     @staticmethod
-    def _create_main_state_handler() -> List[CallbackQueryHandler]:
+    def _create_main_state_handlers() -> List[CallbackQueryHandler]:
         handlers = [
             CallbackQueryHandler(open_product_menu, pattern=callback_data)
             for callback_data in main_state.list_of_callback_data_go_to_product
